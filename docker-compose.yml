@@ -1,3 +1,16 @@
+# =============================================================================
+#  VraiTicket — Docker Compose
+#
+#  All traffic enters through Nginx on port 80 (reverse proxy):
+#    /         → Next.js frontend  (port 3000)
+#    /api/     → FastAPI backend   (port 8000)
+#    /docs     → FastAPI Swagger   (port 8000)
+#    /health   → FastAPI health    (port 8000)
+#
+#  With a reverse proxy both services share one origin — no CORS needed.
+#  For HTTPS, add your SSL certs to nginx/certs/ and uncomment the 443 block.
+# =============================================================================
+
 services:
 
   # ── PostgreSQL ──────────────────────────────────────────────────────────────
@@ -8,7 +21,7 @@ services:
     environment:
       POSTGRES_DB:       ${POSTGRES_DB:-vraiticket_db}
       POSTGRES_USER:     ${POSTGRES_USER:-vraiticket_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-strongpassword}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -25,7 +38,7 @@ services:
     image: redis:7-alpine
     container_name: vraiticket_redis
     restart: unless-stopped
-    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --save 60 1
     volumes:
       - redis_data:/data
     healthcheck:
@@ -36,28 +49,58 @@ services:
     networks:
       - vraiticket_net
 
-  # ── Backend API ─────────────────────────────────────────────────────────────
+  # ── Alembic migrations (one-shot, exits 0 on success) ──────────────────────
+  migrate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: vraiticket_migrate
+    restart: "no"
+    environment:
+      DATABASE_URL:  postgresql://${POSTGRES_USER:-vraiticket_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-vraiticket_db}
+      SECRET_KEY:    ${SECRET_KEY:?SECRET_KEY is required}
+      APP_ENV:       production
+      DEBUG:         "false"
+    command: >
+      sh -c "alembic upgrade head && echo '✓ Migrations applied'"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - vraiticket_net
+
+  # ── FastAPI backend ─────────────────────────────────────────────────────────
   api:
     build:
-      context: ./vraiticket
+      context: ./backend
       dockerfile: Dockerfile
     container_name: vraiticket_api
     restart: unless-stopped
-    env_file: ./vraiticket/.env
     environment:
-      DATABASE_URL:          postgresql://${POSTGRES_USER:-vraiticket_user}:${POSTGRES_PASSWORD:-strongpassword}@postgres:5432/${POSTGRES_DB:-vraiticket_db}
+      DATABASE_URL:          postgresql://${POSTGRES_USER:-vraiticket_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-vraiticket_db}
       REDIS_URL:             redis://redis:6379/0
       CELERY_BROKER_URL:     redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
+      SECRET_KEY:            ${SECRET_KEY:?SECRET_KEY is required}
+      ALGORITHM:             ${ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
+      APP_ENV:               production
+      DEBUG:                 "false"
+      DEFAULT_SLA_HOURS:     ${DEFAULT_SLA_HOURS:-24}
+      FIRST_ADMIN_EMAIL:     ${FIRST_ADMIN_EMAIL:-admin@vraiticket.io}
+      FIRST_ADMIN_PASSWORD:  ${FIRST_ADMIN_PASSWORD:-Admin@12345}
     volumes:
       - uploads:/app/uploads
-    ports:
-      - "${API_PORT:-8000}:8000"
+    # Not exposed directly — Nginx proxies to it
+    expose:
+      - "8000"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -67,37 +110,22 @@ services:
     networks:
       - vraiticket_net
 
-  # ── Alembic migrations (runs once then exits) ───────────────────────────────
-  migrate:
-    build:
-      context: ./vraiticket
-      dockerfile: Dockerfile
-    container_name: vraiticket_migrate
-    restart: "no"
-    env_file: ./vraiticket/.env
-    environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-vraiticket_user}:${POSTGRES_PASSWORD:-strongpassword}@postgres:5432/${POSTGRES_DB:-vraiticket_db}
-    command: >
-      sh -c "alembic upgrade head && echo '✓ Migrations complete'"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - vraiticket_net
-
-  # ── Celery worker ───────────────────────────────────────────────────────────
+  # ── Celery worker + beat ────────────────────────────────────────────────────
   worker:
     build:
-      context: ./vraiticket
+      context: ./backend
       dockerfile: Dockerfile
     container_name: vraiticket_worker
     restart: unless-stopped
-    env_file: ./vraiticket/.env
     environment:
-      DATABASE_URL:          postgresql://${POSTGRES_USER:-vraiticket_user}:${POSTGRES_PASSWORD:-strongpassword}@postgres:5432/${POSTGRES_DB:-vraiticket_db}
+      DATABASE_URL:          postgresql://${POSTGRES_USER:-vraiticket_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-vraiticket_db}
       REDIS_URL:             redis://redis:6379/0
       CELERY_BROKER_URL:     redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
+      SECRET_KEY:            ${SECRET_KEY}
+      APP_ENV:               production
+      DEBUG:                 "false"
+      DEFAULT_SLA_HOURS:     ${DEFAULT_SLA_HOURS:-24}
     volumes:
       - uploads:/app/uploads
     command: celery -A worker.celery_app worker --beat --loglevel=info --concurrency=2
@@ -111,22 +139,47 @@ services:
     networks:
       - vraiticket_net
 
-  # ── Frontend ─────────────────────────────────────────────────────────────────
+  # ── Next.js frontend ────────────────────────────────────────────────────────
   frontend:
     build:
-      context: ./vraiticket-frontend
+      context: ./frontend
       dockerfile: Dockerfile
       args:
-        # The browser calls this URL — must be reachable from the user's machine,
-        # not from inside the Docker network. Change to your server IP/domain.
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api/v1}
+        # With Nginx reverse proxy, the browser hits /api — same origin, no CORS.
+        # NEXT_PUBLIC_API_URL must be the URL the BROWSER uses (not Docker-internal).
+        # With Nginx: use /api/v1 (relative, same origin).
+        # Without Nginx: use http://your-server-ip:8000/api/v1
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api/v1}
     container_name: vraiticket_frontend
     restart: unless-stopped
-    ports:
-      - "${FRONTEND_PORT:-3000}:3000"
+    expose:
+      - "3000"
     depends_on:
       api:
         condition: service_healthy
+    networks:
+      - vraiticket_net
+
+  # ── Nginx reverse proxy ─────────────────────────────────────────────────────
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: vraiticket_nginx
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      # Uncomment for HTTPS (after adding certs to nginx/certs/):
+      # - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      # - ./nginx/certs:/etc/nginx/certs:ro   # SSL certs
+    depends_on:
+      - frontend
+      - api
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     networks:
       - vraiticket_net
 
@@ -136,7 +189,7 @@ volumes:
     driver: local
   redis_data:
     driver: local
-  uploads:
+  uploads:           # shared between api and worker for file attachments + avatars
     driver: local
 
 # ── Network ──────────────────────────────────────────────────────────────────
