@@ -1,0 +1,30 @@
+# ── Web framework ──────────────────────────────────────────────
+fastapi>=0.115.5
+uvicorn[standard]==0.32.1
+
+# ── Database ───────────────────────────────────────────────────
+sqlalchemy>=2.0.36
+alembic>=1.14.0
+psycopg2-binary>=2.9.10
+
+# ── Validation / settings ──────────────────────────────────────
+pydantic>=2.10.3
+pydantic-settings>=2.6.1
+pydantic[email]
+
+# ── Auth — pinned together to avoid bcrypt mismatch ───────────
+#   passlib 1.7.4 works with bcrypt 4.0.1 (NOT 4.1+ which changed the API)
+passlib[bcrypt]>=1.7.4
+bcrypt==4.0.1
+python-jose[cryptography]==3.3.0
+
+# ── File uploads ───────────────────────────────────────────────
+python-multipart==0.0.18
+
+# ── Background tasks ──────────────────────────────────────────
+celery==5.4.0
+redis==5.2.1
+
+# ── Utilities ─────────────────────────────────────────────────
+python-dotenv==1.0.1
+httpx==0.28.1

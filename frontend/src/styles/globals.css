@@ -1,0 +1,164 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Dark theme (default) ─────────────────────────────────────────────────── */
+:root,
+[data-theme="dark"] {
+  --bg:           #0A0A0D;
+  --surface:      #0E0E14;
+  --surface-2:    #13131A;
+  --surface-3:    #1C1C24;
+  --border:       #1C1C22;
+  --border-2:     #252530;
+  --text:         #E8E8F0;       /* slightly brighter primary text */
+  --text-2:       #A8A8BE;       /* secondary — lifted for readability */
+  --text-muted:   #787890;       /* was #555568 — now WCAG AA on dark surfaces */
+  --text-faint:   #4A4A60;       /* was #2E2E3A — usable for decorative/subtle hints */
+  --accent:       #F59E0B;
+  --accent-dim:   rgba(245,158,11,0.14);
+  --input-bg:     #13131A;
+  --input-border: #2A2A38;       /* slightly lighter so inputs are visible */
+  --sidebar-bg:   #0A0A0D;
+  --nav-bg:       rgba(10,10,13,0.92);
+  --overlay:      rgba(0,0,0,0.72);
+  --shadow-card:  0 1px 3px rgba(0,0,0,.5), 0 6px 20px rgba(0,0,0,.35);
+  --danger-bg:    rgba(244,63,94,0.12);
+  --danger-text:  #fb7185;       /* rose-400 — better contrast on dark bg */
+}
+
+/* ── Light theme ──────────────────────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg:           #EDEDF4;       /* slightly deeper so white surfaces pop */
+  --surface:      #FFFFFF;
+  --surface-2:    #F4F4FA;
+  --surface-3:    #E8E8F0;
+  --border:       #D4D4E2;       /* a touch darker for crisper definition */
+  --border-2:     #BBBBD0;
+  --text:         #0D0D18;
+  --text-2:       #2E2E48;       /* darker than before for better contrast */
+  --text-muted:   #52526A;       /* was #64647A — meets WCAG AA on white */
+  --text-faint:   #7E7E98;       /* was #9696AA — ensure placeholder legibility */
+  --accent:       #C45E0A;       /* darker amber — WCAG AA on white bg */
+  --accent-dim:   rgba(196,94,10,0.10);
+  --input-bg:     #FFFFFF;
+  --input-border: #C4C4D6;       /* darker so inputs are clearly bordered */
+  --sidebar-bg:   #FFFFFF;
+  --nav-bg:       rgba(255,255,255,0.96);
+  --overlay:      rgba(0,0,0,0.50);
+  --shadow-card:  0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.07);
+  --danger-bg:    rgba(185,28,28,0.08);
+  --danger-text:  #b91c1c;       /* red-700 — passes WCAG AA on white */
+}
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html {
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  :root, [data-theme="dark"] { color-scheme: dark; }
+  [data-theme="light"]       { color-scheme: light; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    transition: background-color 0.25s, color 0.15s;
+  }
+
+  ::selection { background: var(--accent-dim); }
+
+  ::-webkit-scrollbar       { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 99px; }
+}
+
+@layer components {
+  /* ── Card ─────────────────────────────────────────────────────── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    box-shadow: var(--shadow-card);
+    transition: background 0.25s, border-color 0.25s, box-shadow 0.25s;
+  }
+
+  /* ── Inputs ───────────────────────────────────────────────────── */
+  .input-base {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: 0.75rem;
+    padding: 0.625rem 0.875rem;
+    font-size: 0.867rem;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.25s, color 0.15s;
+  }
+  /* Placeholders use text-muted (not text-faint) so they're legible in both themes */
+  .input-base::placeholder { color: var(--text-muted); opacity: 0.7; }
+  .input-base:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-dim);
+  }
+
+  /* ── Buttons ──────────────────────────────────────────────────── */
+  .btn-primary {
+    display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+    background: var(--accent); color: #fff; font-weight: 600;
+    padding: .625rem 1rem; border-radius: .75rem; font-size: .867rem;
+    border: none; cursor: pointer;
+    transition: filter .15s, transform .1s;
+  }
+  /* Dark mode: amber is bright enough that very dark text gives better contrast */
+  [data-theme="dark"] .btn-primary { color: #0A0A0D; }
+  .btn-primary:hover:not(:disabled)  { filter: brightness(1.1); }
+  .btn-primary:active:not(:disabled) { transform: scale(.97); }
+  .btn-primary:disabled              { opacity: .45; cursor: not-allowed; }
+
+  .btn-secondary {
+    display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+    background: var(--surface-2); color: var(--text-2); font-weight: 500;
+    padding: .625rem 1rem; border-radius: .75rem; font-size: .867rem;
+    border: 1px solid var(--border); cursor: pointer;
+    transition: background .15s, border-color .15s, color .15s;
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background: var(--surface-3); border-color: var(--border-2); color: var(--text);
+  }
+  .btn-secondary:disabled { opacity: .45; cursor: not-allowed; }
+
+  /* ── Typography helpers ───────────────────────────────────────── */
+  .label {
+    display: block; font-size: .667rem; font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: .375rem; text-transform: uppercase; letter-spacing: .16em;
+  }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: .375rem;
+    padding: .2rem .625rem; border-radius: 9999px;
+    font-size: .733rem; font-weight: 500; line-height: 1;
+  }
+
+  .page-title {
+    font-family: 'Syne', sans-serif; font-size: 1.467rem;
+    font-weight: 700; color: var(--text);
+    letter-spacing: -.02em; line-height: 1.2;
+  }
+  .section-title {
+    font-family: 'Syne', sans-serif; font-size: 1rem;
+    font-weight: 600; color: var(--text);
+  }
+}
+
+@layer utilities {
+  .shadow-glow-amber { box-shadow: 0 0 20px rgba(245,158,11,.2); }
+  .shadow-glow-teal  { box-shadow: 0 0 20px rgba(20,184,166,.2); }
+}
