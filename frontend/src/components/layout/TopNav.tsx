@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, X, AlertTriangle, Ticket, CheckCheck, Clock, ArrowUpRight, Sun, Moon } from "lucide-react";
+import { Bell, X, AlertTriangle, Ticket, CheckCheck, Clock, ArrowUpRight, Sun, Moon, Menu } from "lucide-react";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { useThemeStore } from "@/hooks/useTheme";
 import { AuthAvatar } from "@/components/ui/AuthAvatar";
@@ -33,7 +33,11 @@ function ticketsToNotifs(tickets: TicketListItem[], userId?: number) {
   });
 }
 
-export function TopNav() {
+interface TopNavProps {
+  onMenuClick?: () => void;
+}
+
+export function TopNav({ onMenuClick }: TopNavProps) {
   const { user }          = useAuthStore();
   const { theme, toggle } = useThemeStore();
   const pathname          = usePathname();
@@ -91,12 +95,24 @@ export function TopNav() {
 
   return (
     <header
-      className="h-14 flex items-center justify-between px-6 sticky top-0 z-20 shrink-0 backdrop-blur-md transition-colors duration-300"
+      className="h-14 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-20 shrink-0 backdrop-blur-md transition-colors duration-300"
       style={{ background: "var(--nav-bg)", borderBottom: "1px solid var(--border)" }}
     >
-      <h1 className="font-display text-[15px] font-semibold" style={{ color: "var(--text)" }}>
-        {title}
-      </h1>
+      <div className="flex items-center gap-3">
+        {/* ── Hamburger — mobile only ──────────────────────────── */}
+        <button
+          onClick={onMenuClick}
+          className="lg:hidden p-2 rounded-xl transition-all"
+          style={{ color: "var(--text-muted)" }}
+          aria-label="Open menu"
+        >
+          <Menu className="w-[18px] h-[18px]" />
+        </button>
+
+        <h1 className="font-display text-[15px] font-semibold" style={{ color: "var(--text)" }}>
+          {title}
+        </h1>
+      </div>
 
       <div className="flex items-center gap-1.5" ref={ref}>
 
@@ -136,7 +152,7 @@ export function TopNav() {
 
           {notifOpen && (
             <div
-              className="absolute right-0 top-full mt-2 w-[340px] rounded-2xl shadow-2xl overflow-hidden z-50 animate-slide-up"
+              className="absolute right-0 top-full mt-2 w-[min(340px,calc(100vw-2rem))] rounded-2xl shadow-2xl overflow-hidden z-50 animate-slide-up"
               style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
             >
               {/* Header */}
@@ -231,7 +247,7 @@ export function TopNav() {
             style={{ borderLeft: "1px solid var(--border)" }}
           >
             {roleCfg && (
-              <span className={cn("badge text-[10px]", roleCfg.color)}>{roleCfg.label}</span>
+              <span className={cn("badge text-[10px] hidden sm:inline-flex", roleCfg.color)}>{roleCfg.label}</span>
             )}
             <AuthAvatar name={user.full_name} avatarPath={user.avatar_url} size="sm" />
           </div>
@@ -240,4 +256,3 @@ export function TopNav() {
     </header>
   );
 }
-

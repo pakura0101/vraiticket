@@ -51,10 +51,10 @@ export default function DashboardPage() {
   ).length;
 
   return (
-    <div className="max-w-6xl space-y-8">
+    <div className="max-w-6xl space-y-6 sm:space-y-8">
 
       {/* Header */}
-      <div className="flex items-center justify-between animate-slide-up">
+      <div className="flex items-start sm:items-center justify-between gap-4 animate-slide-up">
         <div>
           <h2 className="page-title">
             Good {getGreeting()},{" "}
@@ -65,7 +65,7 @@ export default function DashboardPage() {
           </p>
         </div>
         {(user?.role === "client" || user?.role === "admin") && (
-          <Link href="/tickets/new">
+          <Link href="/tickets/new" className="shrink-0">
             <Button size="sm">
               <Plus className="w-3.5 h-3.5" /> New Ticket
             </Button>
@@ -74,7 +74,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard label="Total Tickets" value={stats?.total_tickets ?? tickets.length}
           icon={Ticket} accent="amber" style={{ animationDelay: "0.05s" }} />
         <StatCard label="Open"          value={stats?.open_tickets ?? openTickets}
@@ -109,76 +109,79 @@ export default function DashboardPage() {
           />
         ) : (
           <div className="card overflow-hidden">
-            <table className="w-full">
-              <thead>
-                <tr style={{ borderBottom: "1px solid var(--border)" }}>
-                  {["Ticket", "Status", "Priority", "Assignee", "Updated"].map(h => (
-                    <th key={h}
-                      className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-[0.16em]"
-                      style={{ color: "var(--text-muted)" }}>
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {tickets.map((ticket, i) => {
-                  const overdue = isOverdue(ticket.due_at) &&
-                    !["RESOLVED", "CLOSED"].includes(ticket.status);
-                  return (
-                    <tr
-                      key={ticket.id}
-                      className="group transition-colors"
-                      style={{ borderTop: i > 0 ? "1px solid var(--border)" : "none" }}
-                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "var(--surface-2)"}
-                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ""}
-                    >
-                      <td className="px-4 py-3">
-                        <Link href={`/tickets/${ticket.id}`} className="flex items-start gap-3">
-                          <div>
-                            <p className="text-sm font-medium transition-colors line-clamp-1"
-                              style={{ color: "var(--text)" }}
-                              onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = "var(--accent)"}
-                              onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = "var(--text)"}>
-                              {ticket.title}
-                            </p>
-                            <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-                              #{ticket.id}
-                            </p>
-                          </div>
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3">
-                        <StatusBadge status={ticket.status} />
-                      </td>
-                      <td className="px-4 py-3">
-                        <PriorityBadge priority={ticket.priority} />
-                      </td>
-                      <td className="px-4 py-3">
-                        {ticket.assignee ? (
-                          <div className="flex items-center gap-2">
-                            <Avatar name={ticket.assignee.full_name} size="sm" />
-                            <span className="text-xs hidden lg:block" style={{ color: "var(--text-2)" }}>
-                              {ticket.assignee.full_name.split(" ")[0]}
+            {/* Horizontally scrollable on small screens */}
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[480px]">
+                <thead>
+                  <tr style={{ borderBottom: "1px solid var(--border)" }}>
+                    {["Ticket", "Status", "Priority", "Assignee", "Updated"].map(h => (
+                      <th key={h}
+                        className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-[0.16em]"
+                        style={{ color: "var(--text-muted)" }}>
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {tickets.map((ticket, i) => {
+                    const overdue = isOverdue(ticket.due_at) &&
+                      !["RESOLVED", "CLOSED"].includes(ticket.status);
+                    return (
+                      <tr
+                        key={ticket.id}
+                        className="group transition-colors"
+                        style={{ borderTop: i > 0 ? "1px solid var(--border)" : "none" }}
+                        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "var(--surface-2)"}
+                        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ""}
+                      >
+                        <td className="px-4 py-3">
+                          <Link href={`/tickets/${ticket.id}`} className="flex items-start gap-3">
+                            <div>
+                              <p className="text-sm font-medium transition-colors line-clamp-1"
+                                style={{ color: "var(--text)" }}
+                                onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = "var(--accent)"}
+                                onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = "var(--text)"}>
+                                {ticket.title}
+                              </p>
+                              <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+                                #{ticket.id}
+                              </p>
+                            </div>
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3">
+                          <StatusBadge status={ticket.status} />
+                        </td>
+                        <td className="px-4 py-3">
+                          <PriorityBadge priority={ticket.priority} />
+                        </td>
+                        <td className="px-4 py-3">
+                          {ticket.assignee ? (
+                            <div className="flex items-center gap-2">
+                              <Avatar name={ticket.assignee.full_name} size="sm" />
+                              <span className="text-xs hidden lg:block" style={{ color: "var(--text-2)" }}>
+                                {ticket.assignee.full_name.split(" ")[0]}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-xs italic" style={{ color: "var(--text-muted)" }}>
+                              Unassigned
                             </span>
-                          </div>
-                        ) : (
-                          <span className="text-xs italic" style={{ color: "var(--text-muted)" }}>
-                            Unassigned
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={cn("text-xs", overdue && "text-rose-500")}
+                            style={!overdue ? { color: "var(--text-muted)" } : undefined}>
+                            {timeAgo(ticket.updated_at)}
                           </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={cn("text-xs", overdue && "text-rose-500")}
-                          style={!overdue ? { color: "var(--text-muted)" } : undefined}>
-                          {timeAgo(ticket.updated_at)}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
