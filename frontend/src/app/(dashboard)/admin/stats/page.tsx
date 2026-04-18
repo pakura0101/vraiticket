@@ -161,8 +161,8 @@ export default function AdminStatsPage() {
                     {chartData.map((entry, i) => <Cell key={i} fill={entry.fill}/>)}
                   </Pie>
                   <Tooltip contentStyle={TOOLTIP_STYLE}
-                    formatter={(v: number, _: string, { payload }: { payload: typeof chartData[0] }) =>
-                      [v, payload.label]}/>
+                    formatter={(v: number, _: string, item: { payload?: typeof chartData[0] }) =>
+                      [v, item?.payload?.label ?? _]}/>
                 </PieChart>
               </ResponsiveContainer>
               <div className="flex-1 space-y-2">
@@ -242,3 +242,5 @@ export default function AdminStatsPage() {
     </div>
   );
 }
+
+
