@@ -190,7 +190,7 @@ export default function AdminStatsPage() {
           <div className="px-5 py-4 border-b border-[var(--border)]">
             <h3 className="section-title text-sm">Agent Performance</h3>
           </div>
-          <table className="w-full">
+          <div className="overflow-x-auto"><table className="w-full min-w-[600px]">
             <thead>
               <tr className="border-b border-[#1A1A1E] bg-[var(--bg)]/40">
                 {["Agent","Assigned","Resolved","Resolution Rate","Avg Rating","Reviews"].map(h => (
@@ -236,7 +236,7 @@ export default function AdminStatsPage() {
                 );
               })}
             </tbody>
-          </table>
+          </table></div>
         </div>
       )}
     </div>

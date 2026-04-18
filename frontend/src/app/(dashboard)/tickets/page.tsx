@@ -40,21 +40,19 @@ export default function TicketsPage() {
     }
   }, [page, status, priority]);
 
-  useEffect(() => { load(); },        [load]);
+  useEffect(() => { load(); }, [load]);
 
   const filtered = search.trim()
     ? tickets.filter((t) => t.title.toLowerCase().includes(search.toLowerCase()) || String(t.id).includes(search))
     : tickets;
 
-  // Role-aware empty state messaging
   const roleEmptyMsg = user?.role === "client"
     ? "You haven't submitted any tickets yet."
     : user?.role === "agent"
     ? "No tickets are assigned to you yet."
     : "No tickets in the system yet.";
 
-  // Role-aware column visibility — agents don't need "Created by" column
-  const showCreatorCol = user?.role === "admin";
+  const showCreatorCol  = user?.role === "admin";
   const showAssigneeCol = user?.role === "admin" || user?.role === "agent";
 
   return (
@@ -118,7 +116,7 @@ export default function TicketsPage() {
         </div>
       </div>
 
-      {/* Table */}
+      {/* Table — scrollable on mobile */}
       <div className="card overflow-hidden animate-slide-up" style={{ animationDelay: "0.1s" }}>
         {loading ? (
           <div className="flex items-center justify-center h-48"><Spinner className="w-5 h-5 text-amber-400" /></div>
@@ -130,67 +128,69 @@ export default function TicketsPage() {
             ) : undefined}
           />
         ) : (
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-[var(--border)] bg-[var(--bg)]/60">
-                {["#", "Title", "Status", "Priority",
-                  ...(showCreatorCol ? ["Submitted by"] : []),
-                  ...(showAssigneeCol ? ["Assignee"] : []),
-                  "Updated"].map((h) => (
-                  <th key={h} className="text-left px-4 py-3 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-[0.18em] whitespace-nowrap">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--border)]">
-              {filtered.map((ticket) => {
-                const overdue = isOverdue(ticket.due_at) && !["RESOLVED","CLOSED"].includes(ticket.status);
-                return (
-                  <tr key={ticket.id} className="hover:bg-[var(--surface)] transition-colors group">
-                    <td className="px-4 py-3.5">
-                      <span className="font-mono text-[11px] text-[var(--text-muted)] bg-[var(--surface)] px-1.5 py-0.5 rounded">#{ticket.id}</span>
-                    </td>
-                    <td className="px-4 py-3.5 max-w-[260px]">
-                      <Link href={`/tickets/${ticket.id}`}>
-                        <p className="text-[13px] font-medium text-[var(--text)] group-hover:text-amber-400 transition-colors line-clamp-1">
-                          {ticket.title}
-                        </p>
-                        {overdue && <p className="text-[10px] text-rose-600 dark:text-rose-400 mt-0.5">⚠ SLA overdue</p>}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3.5 whitespace-nowrap"><StatusBadge status={ticket.status} /></td>
-                    <td className="px-4 py-3.5"><PriorityBadge priority={ticket.priority} /></td>
-                    {showCreatorCol && (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[520px]">
+              <thead>
+                <tr className="border-b border-[var(--border)] bg-[var(--bg)]/60">
+                  {["#", "Title", "Status", "Priority",
+                    ...(showCreatorCol ? ["Submitted by"] : []),
+                    ...(showAssigneeCol ? ["Assignee"] : []),
+                    "Updated"].map((h) => (
+                    <th key={h} className="text-left px-4 py-3 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-[0.18em] whitespace-nowrap">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--border)]">
+                {filtered.map((ticket) => {
+                  const overdue = isOverdue(ticket.due_at) && !["RESOLVED","CLOSED"].includes(ticket.status);
+                  return (
+                    <tr key={ticket.id} className="hover:bg-[var(--surface)] transition-colors group">
                       <td className="px-4 py-3.5">
-                        {ticket.creator ? (
-                          <div className="flex items-center gap-2">
-                            <Avatar name={ticket.creator.full_name} size="sm" />
-                            <span className="text-xs text-[var(--text-muted)] hidden xl:block">{ticket.creator.full_name.split(" ")[0]}</span>
-                          </div>
-                        ) : <span className="text-xs text-[var(--border)]">—</span>}
+                        <span className="font-mono text-[11px] text-[var(--text-muted)] bg-[var(--surface)] px-1.5 py-0.5 rounded">#{ticket.id}</span>
                       </td>
-                    )}
-                    {showAssigneeCol && (
-                      <td className="px-4 py-3.5">
-                        {ticket.assignee ? (
-                          <div className="flex items-center gap-2">
-                            <Avatar name={ticket.assignee.full_name} size="sm" />
-                            <span className="text-xs text-[var(--text-muted)] hidden xl:block">{ticket.assignee.full_name.split(" ")[0]}</span>
-                          </div>
-                        ) : <span className="text-xs text-[var(--border)]">—</span>}
+                      <td className="px-4 py-3.5 max-w-[200px] sm:max-w-[260px]">
+                        <Link href={`/tickets/${ticket.id}`}>
+                          <p className="text-[13px] font-medium text-[var(--text)] group-hover:text-amber-400 transition-colors line-clamp-1">
+                            {ticket.title}
+                          </p>
+                          {overdue && <p className="text-[10px] text-rose-600 dark:text-rose-400 mt-0.5">⚠ SLA overdue</p>}
+                        </Link>
                       </td>
-                    )}
-                    <td className="px-4 py-3.5 whitespace-nowrap">
-                      <span className={cn("text-[11px]", overdue ? "text-rose-600 dark:text-rose-400" : "text-[var(--text-muted)]")}>
-                        {timeAgo(ticket.updated_at)}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      <td className="px-4 py-3.5 whitespace-nowrap"><StatusBadge status={ticket.status} /></td>
+                      <td className="px-4 py-3.5"><PriorityBadge priority={ticket.priority} /></td>
+                      {showCreatorCol && (
+                        <td className="px-4 py-3.5">
+                          {ticket.creator ? (
+                            <div className="flex items-center gap-2">
+                              <Avatar name={ticket.creator.full_name} size="sm" />
+                              <span className="text-xs text-[var(--text-muted)] hidden xl:block">{ticket.creator.full_name.split(" ")[0]}</span>
+                            </div>
+                          ) : <span className="text-xs text-[var(--border)]">—</span>}
+                        </td>
+                      )}
+                      {showAssigneeCol && (
+                        <td className="px-4 py-3.5">
+                          {ticket.assignee ? (
+                            <div className="flex items-center gap-2">
+                              <Avatar name={ticket.assignee.full_name} size="sm" />
+                              <span className="text-xs text-[var(--text-muted)] hidden xl:block">{ticket.assignee.full_name.split(" ")[0]}</span>
+                            </div>
+                          ) : <span className="text-xs text-[var(--border)]">—</span>}
+                        </td>
+                      )}
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        <span className={cn("text-[11px]", overdue ? "text-rose-600 dark:text-rose-400" : "text-[var(--text-muted)]")}>
+                          {timeAgo(ticket.updated_at)}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 

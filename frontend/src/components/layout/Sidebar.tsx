@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Ticket, Plus, BarChart3,
   Users, LogOut, ChevronRight, Activity, TrendingUp,
-  Users2, FileText, Building2,
+  Users2, FileText, Building2, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/hooks/useAuthStore";
@@ -33,14 +33,18 @@ const NAV_SECTIONS = [
   },
 ];
 
-// These hrefs need exact matching (they are prefixes of sibling hrefs)
 const EXACT_MATCH = new Set([
   "/dashboard", "/tickets",
   "/admin/stats", "/admin/performance",
   "/admin/groups", "/admin/companies", "/admin/users",
 ]);
 
-export function Sidebar() {
+interface SidebarProps {
+  mobileOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
   const router   = useRouter();
   const { user, clearAuth } = useAuthStore();
@@ -54,14 +58,19 @@ export function Sidebar() {
     router.push("/login");
   }
 
-  return (
+  function handleNavClick() {
+    onClose?.();
+  }
+
+  const sidebarContent = (
     <aside
-      className="fixed left-0 top-0 h-screen w-[220px] flex flex-col z-30 transition-colors duration-300"
+      className="h-full w-[220px] flex flex-col transition-colors duration-300"
       style={{ background: "var(--sidebar-bg)", borderRight: "1px solid var(--border)" }}
     >
       {/* Logo */}
       <Link
         href="/dashboard"
+        onClick={handleNavClick}
         className="flex items-center gap-3 px-5 py-[18px] shrink-0 group"
         style={{ borderBottom: "1px solid var(--border)" }}
       >
@@ -71,7 +80,7 @@ export function Sidebar() {
             <Activity className="w-[18px] h-[18px] text-[#0A0A0D]" strokeWidth={2.5} />
           </div>
         </div>
-        <div className="leading-none">
+        <div className="leading-none flex-1">
           <span className="font-display font-extrabold text-[15px] tracking-tight block"
             style={{ color: "var(--text)" }}>
             Vrai<span style={{ color: "var(--accent)" }}>Ticket</span>
@@ -79,6 +88,15 @@ export function Sidebar() {
           <span className="text-[9px] uppercase tracking-[0.18em] font-medium"
             style={{ color: "var(--text-faint)" }}>Support Suite</span>
         </div>
+        {/* Close button — mobile only */}
+        <button
+          onClick={(e) => { e.preventDefault(); onClose?.(); }}
+          className="p-1.5 rounded-lg lg:hidden shrink-0 transition-colors"
+          style={{ color: "var(--text-muted)" }}
+          aria-label="Close menu"
+        >
+          <X className="w-4 h-4" />
+        </button>
       </Link>
 
       {/* Nav */}
@@ -99,6 +117,7 @@ export function Sidebar() {
                     <Link
                       key={item.href}
                       href={item.href}
+                      onClick={handleNavClick}
                       className={cn(
                         "flex items-center gap-2.5 px-3 py-[9px] rounded-xl text-[13px] font-medium transition-all duration-150 group relative"
                       )}
@@ -165,5 +184,34 @@ export function Sidebar() {
         </div>
       )}
     </aside>
+  );
+
+  return (
+    <>
+      {/* ── Desktop: fixed sidebar ─────────────────────────────── */}
+      <div className="hidden lg:block fixed left-0 top-0 h-screen z-30 w-[220px]">
+        {sidebarContent}
+      </div>
+
+      {/* ── Mobile: slide-over drawer ──────────────────────────── */}
+      {/* Backdrop */}
+      <div
+        className={cn(
+          "lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-300",
+          mobileOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        )}
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      {/* Drawer panel */}
+      <div
+        className={cn(
+          "lg:hidden fixed left-0 top-0 h-full z-50 shadow-2xl transition-transform duration-300 ease-in-out",
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
+        {sidebarContent}
+      </div>
+    </>
   );
 }

@@ -240,7 +240,7 @@ export default function UsersPage() {
         ) : filtered.length === 0 ? (
           <EmptyState icon={<Search className="w-8 h-8" />} title="No users found" />
         ) : (
-          <table className="w-full">
+          <div className="overflow-x-auto"><table className="w-full min-w-[600px]">
             <thead>
               <tr className="border-b border-[#1A1A1E] bg-[var(--bg)]/60">
                 {["User", "Role", "Info", "Contact", "Status", "Joined", ""].map(h => (
@@ -314,7 +314,7 @@ export default function UsersPage() {
                 );
               })}
             </tbody>
-          </table>
+          </table></div>
         )}
       </div>
 
