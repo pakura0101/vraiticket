@@ -129,7 +129,7 @@ export function TopNav() {
             {notifs.length > 0 && (
               <span
                 className="absolute top-1 right-1 w-[7px] h-[7px] rounded-full ring-2"
-                style={{ background: "var(--accent)", ringColor: "var(--bg)" }}
+                style={{ background: "var(--accent)", boxShadow: "0 0 0 2px var(--bg)" }}
               />
             )}
           </button>
@@ -240,3 +240,4 @@ export function TopNav() {
     </header>
   );
 }
+

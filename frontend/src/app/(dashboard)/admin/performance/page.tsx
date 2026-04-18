@@ -299,7 +299,7 @@ export default function PerformancePage() {
                 >
                   <XAxis dataKey="name" tick={{ fill: "#4A4A5E", fontSize: 11 }} axisLine={false} tickLine={false}/>
                   <YAxis tick={{ fill: "#4A4A5E", fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false}/>
-                  <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number, _: string, { payload }: { payload: { name: string } }) => [v, payload.name]}/>
+                  <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number, _: string, item: { payload?: { name?: string } }) => [v, item?.payload?.name ?? _]}/>
                   <Bar dataKey="value" radius={[6,6,0,0]}>
                     {[
                       { name:"Assigned", fill:"#F59E0B" },
@@ -316,3 +316,4 @@ export default function PerformancePage() {
     </div>
   );
 }
+
