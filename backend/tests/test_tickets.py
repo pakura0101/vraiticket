@@ -1,11 +1,9 @@
 """Tests for /api/v1/tickets endpoints: CRUD, assign, escalate, cancel, comments, rating."""
-import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from tests.conftest import auth_headers, make_ticket, make_user
-from app.models.ticket import TicketStatus, TicketPriority, TicketType
-from app.models.user import UserRole
+from tests.conftest import auth_headers, make_ticket
+from app.models.ticket import TicketStatus, TicketPriority
 
 BASE = "/api/v1/tickets"
 

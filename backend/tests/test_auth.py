@@ -1,5 +1,4 @@
 """Tests for POST /api/v1/auth/login and GET /api/v1/auth/me."""
-import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 

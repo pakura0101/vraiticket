@@ -37,7 +37,6 @@ with mock.patch("sqlalchemy.create_engine", side_effect=_sqlite_engine_factory):
         if mod.startswith("app."):
             del sys.modules[mod]
     import app.db.base as _db_base
-    import app.db.session as _db_session
     from app.db.session import get_db
 
 _db_base.engine = _TEST_ENGINE
@@ -48,10 +47,10 @@ _db_base.SessionLocal = _TestingSession
 async def _noop_lifespan(app_instance):
     yield
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from app.api.v1.router import router as _api_router
-from app.core.config import settings as _settings
+from fastapi import FastAPI  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from app.api.v1.router import router as _api_router  # noqa: E402
+from app.core.config import settings as _settings  # noqa: E402
 
 app = FastAPI(title=_settings.APP_NAME, version="1.0.0", lifespan=_noop_lifespan)
 app.add_middleware(
@@ -65,12 +64,12 @@ app.include_router(_api_router)
 def health():
     return {"status": "ok", "app": _settings.APP_NAME}
 
-from app.db.base import Base
-from app.models.user import User, UserRole
-from app.models.company import Company
-from app.models.group import Group
-from app.models.ticket import Ticket, TicketStatus, TicketPriority, TicketType
-from app.core.security import hash_password, create_access_token
+from app.db.base import Base  # noqa: E402
+from app.models.user import User, UserRole  # noqa: E402
+from app.models.company import Company  # noqa: E402
+from app.models.group import Group  # noqa: E402
+from app.models.ticket import Ticket, TicketStatus, TicketPriority, TicketType  # noqa: E402
+from app.core.security import hash_password, create_access_token  # noqa: E402
 
 # 5. Create tables once
 Base.metadata.create_all(bind=_TEST_ENGINE)

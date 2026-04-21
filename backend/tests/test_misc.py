@@ -1,9 +1,7 @@
 """Miscellaneous tests: health check, RBAC helpers, pagination utility, schema validators."""
-import pytest
 from fastapi.testclient import TestClient
 
-from tests.conftest import auth_headers, make_user
-from app.models.user import UserRole
+from tests.conftest import auth_headers
 from app.utils.pagination import paginate
 from app.core.exceptions import BadRequestError, NotFoundError, ForbiddenError, ConflictError
 

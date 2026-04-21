@@ -1,5 +1,4 @@
 """Tests for /api/v1/companies endpoints."""
-import pytest
 from fastapi.testclient import TestClient
 
 from tests.conftest import auth_headers

@@ -3,8 +3,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from tests.conftest import auth_headers, make_user
-from app.models.user import UserRole
+from tests.conftest import auth_headers
 from app.models.group import Group
 from app.core.exceptions import ConflictError, NotFoundError
 from app.services.group_service import GroupService

@@ -107,7 +107,6 @@ def download_attachment(ticket_id: int, attachment_id: int,
     att, data = TicketService(db).get_attachment(attachment_id, requester=current_user)
     # Use inline disposition so images render in browser / axios blob fetch
     # Use attachment only for non-image/non-pdf types
-    import mimetypes
     inline_types = ("image/", "application/pdf", "text/")
     disposition = "inline" if any(att.mime_type.startswith(t) for t in inline_types) else "attachment"
     return Response(

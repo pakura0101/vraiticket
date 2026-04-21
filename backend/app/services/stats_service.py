@@ -64,7 +64,7 @@ class StatsService:
         # Per-agent stats
         agents = (
             self.db.query(User)
-            .filter(User.role == UserRole.agent, User.is_active == True)
+            .filter(User.role == UserRole.agent, User.is_active)
             .all()
         )
 

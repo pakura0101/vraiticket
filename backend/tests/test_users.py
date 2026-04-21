@@ -1,10 +1,7 @@
 """Tests for /api/v1/users endpoints."""
-import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
 
-from tests.conftest import make_user, auth_headers
-from app.models.user import UserRole
+from tests.conftest import auth_headers
 
 BASE = "/api/v1/users"
 

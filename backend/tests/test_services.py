@@ -1,11 +1,10 @@
 """Unit tests for service-layer logic (no HTTP layer, direct service calls)."""
 import pytest
-from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 
 from tests.conftest import make_user, make_ticket
 from app.models.user import UserRole
-from app.models.ticket import TicketStatus, TicketPriority
+from app.models.ticket import TicketStatus
 from app.core.exceptions import BadRequestError, ForbiddenError, NotFoundError, ConflictError
 from app.services.auth_service import AuthService
 from app.services.user_service import UserService
@@ -17,7 +16,6 @@ from app.schemas.user import UserCreate, UserUpdate
 from app.schemas.ticket import TicketCreate, TicketUpdate
 from app.schemas.comment import CommentCreate
 from app.schemas.ticket_log import RatingCreate
-from app.models.ticket import TicketType
 
 
 # ─────────────────────────────────────────────────────────────────────────────
