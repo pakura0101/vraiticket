@@ -12,7 +12,7 @@ import { ticketsAPI, usersAPI } from "@/lib/services";
 import { getErrorMessage } from "@/lib/api";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { StatusBadge, PriorityBadge } from "@/components/ui/Badges";
-import { Avatar, Button, Modal, Select, Spinner, Textarea, EmptyState } from "@/components/ui";
+import { Button, Modal, Select, Spinner, Textarea, EmptyState } from "@/components/ui";
 import { AuthAvatar } from "@/components/ui/AuthAvatar";
 import { AttachmentGallery } from "@/components/tickets/AttachmentGallery";
 import {
@@ -193,7 +193,6 @@ export default function TicketDetailPage() {
   const canEscalate   = (isAssignedAgent || isAdmin) && !isTerminal;
   // Only clients (own ticket) and admins can cancel — not agents
   const canCancel     = !isTerminal && (isOwner || isAdmin);
-  const canRate       = isOwner && isResolved && !ticket.rating;
   const canUploadFile = !isCancelled && !isClosed;
   const overdue       = isOverdue(ticket.due_at) && !isTerminal;
 
@@ -554,7 +553,7 @@ export default function TicketDetailPage() {
                 </span>
               </div>
               {ticket.rating.feedback && (
-                <p className="text-xs text-[var(--text-muted)] italic mt-1">"{ticket.rating.feedback}"</p>
+                <p className="text-xs text-[var(--text-muted)] italic mt-1">&ldquo;{ticket.rating.feedback}&rdquo;</p>
               )}
             </div>
           )}

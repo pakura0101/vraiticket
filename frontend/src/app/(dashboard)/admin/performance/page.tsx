@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Star, TrendingUp, Clock, CheckCircle, Ticket, Award, Users } from "lucide-react";
+import { Star, TrendingUp, CheckCircle, Ticket, Award, Users } from "lucide-react";
 import {
   RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, Tooltip, Cell,

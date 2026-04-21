@@ -6,7 +6,7 @@ import { Bell, X, AlertTriangle, Ticket, CheckCheck, Clock, ArrowUpRight, Sun, M
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { useThemeStore } from "@/hooks/useTheme";
 import { AuthAvatar } from "@/components/ui/AuthAvatar";
-import { ROLE_CONFIG, timeAgo, STATUS_CONFIG, cn } from "@/lib/utils";
+import { ROLE_CONFIG, timeAgo, cn } from "@/lib/utils";
 import { ticketsAPI } from "@/lib/services";
 import type { TicketListItem } from "@/types";
 
