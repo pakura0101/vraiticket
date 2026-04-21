@@ -114,3 +114,7 @@ jobs:
 
       - name: Build full stack with docker-compose
         run: docker compose config
+        env:
+          POSTGRES_PASSWORD: ci_test_password
+          POSTGRES_USER: ci_user
+          POSTGRES_DB: vraiticket_test
