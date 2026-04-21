@@ -118,3 +118,4 @@ jobs:
           POSTGRES_PASSWORD: ci_test_password
           POSTGRES_USER: ci_user
           POSTGRES_DB: vraiticket_test
+          SECRET_KEY: ci_test_secret_key_fixed_length_32_chars_long
