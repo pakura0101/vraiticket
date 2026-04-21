@@ -8,7 +8,7 @@ import { z } from "zod";
 import toast from "react-hot-toast";
 import { usersAPI, companiesAPI } from "@/lib/services";
 import { getErrorMessage } from "@/lib/api";
-import { Button, Input, Select, Modal, Spinner, EmptyState, Avatar } from "@/components/ui";
+import { Button, Input, Select, Modal, Spinner, EmptyState } from "@/components/ui";
 import { AvatarUpload } from "@/components/ui/AvatarUpload";
 import { AuthAvatar } from "@/components/ui/AuthAvatar";
 import { ROLE_CONFIG, cn, timeAgo, formatDate } from "@/lib/utils";

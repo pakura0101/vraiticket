@@ -1,4 +1,3 @@
-import os
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -14,7 +13,7 @@ from app.models.ticket_log import LogAction, TicketLog
 from app.models.user     import User, UserRole
 from app.schemas.ticket  import TicketCreate, TicketUpdate
 from app.utils.notifications import (
-    notify_ticket_assigned, notify_ticket_created,
+    notify_ticket_created,
     notify_ticket_resolved, notify_status_changed,
 )
 
@@ -113,10 +112,14 @@ class TicketService:
                 )
             )
 
-        if status:      q = q.filter(Ticket.status == status)
-        if priority:    q = q.filter(Ticket.priority == priority)
-        if group_id:    q = q.filter(Ticket.group_id == group_id)
-        if ticket_type: q = q.filter(Ticket.ticket_type == ticket_type)
+        if status:
+            q = q.filter(Ticket.status == status)
+        if priority:
+            q = q.filter(Ticket.priority == priority)
+        if group_id:
+            q = q.filter(Ticket.group_id == group_id)
+        if ticket_type:
+            q = q.filter(Ticket.ticket_type == ticket_type)
         if assigned_to is not None and requesting_user.role == UserRole.admin:
             q = q.filter(Ticket.assigned_to == assigned_to)
 
@@ -214,7 +217,7 @@ class TicketService:
         target = self.db.query(User).filter(
             User.id == target_agent_id,
             User.role == UserRole.agent,
-            User.is_active == True,
+            User.is_active,
         ).first()
         if not target:
             raise NotFoundError("Target agent")

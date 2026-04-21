@@ -67,6 +67,6 @@ class CommentService:
 
         # Clients cannot see internal notes
         if requesting_user.role == UserRole.client:
-            q = q.filter(Comment.is_internal == False)
+            q = q.filter(not Comment.is_internal)
 
         return q.order_by(Comment.created_at.asc()).all()

@@ -13,7 +13,7 @@ class AuthService:
     def login(self, payload: LoginRequest) -> TokenResponse:
         user = (
             self.db.query(User)
-            .filter(User.email == payload.email, User.is_active == True)
+            .filter(User.email == payload.email, User.is_active)
             .first()
         )
         if not user or not verify_password(payload.password, user.hashed_password):

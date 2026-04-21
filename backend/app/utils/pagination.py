@@ -1,9 +1,5 @@
 import math
-from typing import TypeVar, Generic
-from pydantic import BaseModel
-
-from app.schemas.common import PaginatedResponse
-
+from typing import TypeVar
 T = TypeVar("T")
 
 

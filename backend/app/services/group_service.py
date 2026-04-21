@@ -36,7 +36,7 @@ class GroupService:
     def list_groups(self, active_only: bool = True) -> list[Group]:
         q = self.db.query(Group)
         if active_only:
-            q = q.filter(Group.is_active == True)
+            q = q.filter(Group.is_active)
         return q.all()
 
     def update(self, group_id: int, payload: GroupUpdate) -> Group:

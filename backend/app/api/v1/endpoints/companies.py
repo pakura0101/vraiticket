@@ -32,7 +32,7 @@ def list_companies(
     db: Session = Depends(get_db),
     _: User = Depends(get_current_user),   # all authenticated users
 ):
-    return db.query(Company).filter(Company.is_active == True).all()
+    return db.query(Company).filter(Company.is_active).all()
 
 
 @router.get("/{company_id}", response_model=CompanyRead, summary="Get company by ID")

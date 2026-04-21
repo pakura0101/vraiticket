@@ -8,4 +8,3 @@ from app.schemas.ticket_log  import TicketLogRead, RatingCreate, RatingRead     
 from app.schemas.attachment  import AttachmentRead                                  # noqa: F401
 from app.schemas.stats       import SystemStats                                     # noqa: F401
 from app.schemas.common      import PaginatedResponse                               # noqa: F401
-from app.schemas.stats import AgentStats, SystemStats, TicketStatusCount  # noqa: F401 (re-export)
