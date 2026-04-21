@@ -41,6 +41,7 @@ jobs:
 
       - name: Run tests with coverage
         run: |
+          export PYTHONPATH=$PYTHONPATH:$(pwd)
           pytest -q --cov=app --cov-report=xml --cov-report=term-missing --tb=short
 
       - name: Upload coverage to Codecov
