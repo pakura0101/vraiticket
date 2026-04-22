@@ -1,0 +1,85 @@
+name: VraiTicket CD
+
+# ── Trigger: only when code lands on main (after approved PR merge) ───────────
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+
+    # ── Optional: manual approval gate ───────────────────────────────────────
+    # Create a "production" environment in:
+    # Settings → Environments → New environment → Required reviewers
+    # Then uncomment the line below to pause CD until a human clicks Approve.
+    # environment: production
+
+    steps:
+      # ── 1. Deploy via SSH ──────────────────────────────────────────────────
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host:     ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key:      ${{ secrets.VPS_SSH_KEY }}
+          port:     ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            set -e
+            cd /opt/vraiticket          # ← adjust to your path on VPS
+
+            echo "📥 Pulling latest code..."
+            git pull origin main
+
+            echo "🔨 Rebuilding images..."
+            docker compose build --pull api worker frontend
+
+            echo "🗄️ Running migrations..."
+            docker compose run --rm migrate
+
+            echo "🚀 Deploying — zero downtime..."
+            docker compose up -d --build --wait
+
+            echo "🧹 Cleaning up old images..."
+            docker image prune -f
+
+            echo "✅ Deployment complete — $(date)"
+
+      # ── 2. Health check ────────────────────────────────────────────────────
+      - name: Health check
+        run: |
+          echo "Waiting for /health to respond..."
+          for i in $(seq 1 12); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              http://${{ secrets.VPS_HOST }}/health || true)
+            if [ "$STATUS" = "200" ]; then
+              echo "✅ /health returned 200"
+              exit 0
+            fi
+            echo "  attempt $i — got $STATUS, retrying in 10s..."
+            sleep 10
+          done
+          echo "❌ Health check timed out"
+          exit 1
+
+      # ── 3. Rollback on failure ─────────────────────────────────────────────
+      - name: Rollback on failure
+        if: failure()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host:     ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key:      ${{ secrets.VPS_SSH_KEY }}
+          port:     ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            set -e
+            cd /opt/vraiticket
+
+            echo "⏪ Rolling back to previous commit..."
+            git checkout HEAD~1
+
+            docker compose build api worker frontend
+            docker compose up -d --wait
+
+            echo "⚠️  Rollback complete — $(date)"
