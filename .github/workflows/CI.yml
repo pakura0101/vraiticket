@@ -1,15 +1,12 @@
 name: VraiTicket CI
-
 on:
   push:
     branches: main
   pull_request:
     branches: main
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
   # ====================== BACKEND ======================
   backend:
@@ -18,17 +15,14 @@ jobs:
     defaults:
       run:
         working-directory: ./backend
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
           cache: 'pip'
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -38,18 +32,15 @@ jobs:
         run: |
           pip install ruff
           ruff check . --output-format=github
-
       - name: Run tests with coverage
         run: |
           export PYTHONPATH=$PYTHONPATH:$(pwd)
           pytest -q --cov=app --cov-report=xml --cov-report=term-missing --tb=short
-
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
           files: ./backend/coverage.xml
           fail_ci_if_error: false
-
   # ====================== FRONTEND ======================
   frontend:
     name: Frontend CI (Next.js)
@@ -57,30 +48,25 @@ jobs:
     defaults:
       run:
         working-directory: ./frontend
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Set up Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
-
       - name: Install dependencies
         run: npm install --legacy-peer-deps
-
       - name: Type check
         run: npm run type-check --if-present
-
+      - name: Run unit tests
+        run: npm run test:ci
       - name: Lint
         run: npm run lint
-
       - name: Build
         run: npm run build
-
   # ====================== DOCKER BUILD ======================
   docker:
     name: Docker Build Check
@@ -89,10 +75,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
       - name: Build Backend Docker image
         uses: docker/build-push-action@v6
         with:
@@ -102,7 +86,6 @@ jobs:
           tags: vraiticket/backend:ci-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
       - name: Build Frontend Docker image
         uses: docker/build-push-action@v6
         with:
@@ -112,7 +95,6 @@ jobs:
           tags: vraiticket/frontend:ci-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
       - name: Build full stack with docker-compose
         run: docker compose config
         env:
