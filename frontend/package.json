@@ -5,6 +5,7 @@
   "scripts": {
     "test": "jest --coverage",
     "test:watch": "jest --watch",
+    "lint": "next lint",
     "test:ci": "jest --ci --coverage --coverageReporters=text-summary"
   },
   "dependencies": {
