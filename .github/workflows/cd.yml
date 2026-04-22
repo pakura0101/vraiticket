@@ -1,6 +1,5 @@
 name: VraiTicket CD
 
-# ── Trigger: only when code lands on main (after approved PR merge) ───────────
 on:
   push:
     branches: [main]
@@ -10,11 +9,7 @@ jobs:
     name: Deploy to VPS
     runs-on: ubuntu-latest
 
-    # ── Optional: manual approval gate ───────────────────────────────────────
-    # Create a "production" environment in:
-    # Settings → Environments → New environment → Required reviewers
-    # Then uncomment the line below to pause CD until a human clicks Approve.
-    # environment: production
+    # environment: production  # uncomment for manual approval gate
 
     steps:
       # ── 1. Deploy via SSH ──────────────────────────────────────────────────
@@ -27,7 +22,7 @@ jobs:
           port:     ${{ secrets.VPS_PORT || 22 }}
           script: |
             set -e
-            cd /opt/vraiticket          # ← adjust to your path on VPS
+            cd /opt/vraiticket
 
             echo "📥 Pulling latest code..."
             git pull origin main
@@ -38,8 +33,8 @@ jobs:
             echo "🗄️ Running migrations..."
             docker compose run --rm migrate
 
-            echo "🚀 Deploying — zero downtime..."
-            docker compose up -d --build --wait
+            echo "🚀 Deploying..."
+            docker compose up -d --build
 
             echo "🧹 Cleaning up old images..."
             docker image prune -f
@@ -80,6 +75,6 @@ jobs:
             git checkout HEAD~1
 
             docker compose build api worker frontend
-            docker compose up -d --wait
+            docker compose up -d
 
             echo "⚠️  Rollback complete — $(date)"
