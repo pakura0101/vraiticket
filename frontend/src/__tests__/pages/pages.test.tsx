@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import type { User } from "@/types";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { useThemeStore } from "@/hooks/useTheme";
+import toast from "react-hot-toast";
 
 const mock = new MockAdapter(api);
 
@@ -106,7 +107,7 @@ describe("LoginPage — submission", () => {
     fireEvent.change(screen.getByPlaceholderText("you@company.com"), { target: { value: "a@b.com" } });
     fireEvent.change(screen.getByPlaceholderText("••••••••"),          { target: { value: "wrong"  } });
     fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
-    await waitFor(() => expect(require("react-hot-toast").default.error).toHaveBeenCalled());
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
   });
   it("redirects if already authenticated", async () => {
     act(() => useAuthStore.setState({ isAuthenticated: true, token: "tok", user: admin, hydrated: true }));

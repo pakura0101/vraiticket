@@ -7,7 +7,11 @@ import { useAuthStore } from "@/hooks/useAuthStore";
 const mock = new MockAdapter(api);
 const mockPush = jest.fn();
 
-jest.mock("@/hooks/useAuthImage", () => ({ useAuthFile: () => ({ state: "error", src: "" }), useAuthFiles: () => ({}) }));
+const mockUseAuthFiles = jest.fn(() => ({}));
+jest.mock("@/hooks/useAuthImage", () => ({
+  useAuthFile: () => ({ state: "error", src: "" }),
+  useAuthFiles: () => mockUseAuthFiles(),
+}));
 jest.mock("next/navigation", () => ({ useRouter: () => ({ push: mockPush, replace: jest.fn() }), usePathname: () => "/tickets/internal", useParams: () => ({}) }));
 
 const agent = { id: 3, full_name: "Agent User", email: "agent@test.com", role: "agent" as const, phone: null, company_id: null, job_title: null, department: null, avatar_url: null, is_active: true, created_at: "", updated_at: "" };
@@ -102,7 +106,7 @@ describe("AttachmentGallery", () => {
   // screenshot.png is an image: useAuthFiles returns {} so state="loading" (shows spinner, no filename text).
   // Override to return state="error" so the error fallback renders the filename as visible text.
   it("renders 'screenshot.png'", () => {
-    jest.spyOn(require("@/hooks/useAuthImage"), "useAuthFiles").mockReturnValueOnce({
+    mockUseAuthFiles.mockReturnValueOnce({
       "/tickets/1/attachments/1/download": { state: "error", src: "" },
     });
     render(<AttachmentGallery attachments={attachments} ticketId={1} canUpload={false} onUploaded={jest.fn()} />);
