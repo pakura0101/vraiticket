@@ -24,24 +24,58 @@ jobs:
             set -e
             cd /opt/vraiticket
 
+            # ── 1. Backup DB before touching anything ──────────────────────
+            echo "💾 Backing up database..."
+            BACKUP_FILE="/opt/backups/vraiticket_$(date +%Y%m%d_%H%M%S).sql.gz"
+            mkdir -p /opt/backups
+            docker compose exec -T postgres pg_dump \
+              -U ${POSTGRES_USER:-vraiticket_user} \
+              ${POSTGRES_DB:-vraiticket_db} | gzip > "$BACKUP_FILE"
+            echo "✓ Backup saved to $BACKUP_FILE"
+
+            # Keep only last 7 daily backups to save disk space
+            ls -t /opt/backups/vraiticket_*.sql.gz | tail -n +8 | xargs -r rm
+
+            # ── 2. Pull latest code ────────────────────────────────────────
             echo "📥 Pulling latest code..."
             git pull origin main
 
-            echo "🔨 Rebuilding images..."
+            # ── 3. Build new images (cache OK — code changes bust layers) ──
+            echo "🔨 Building new images..."
             docker compose build --pull api worker frontend
 
+            # ── 4. Run migrations (DB still serving old api) ───────────────
             echo "🗄️ Running migrations..."
-            docker compose run --rm migrate
+            docker compose run --rm --no-deps migrate
 
-            echo "🚀 Deploying..."
-            docker compose up -d --build
+            # ── 5. Rolling restart — zero downtime ─────────────────────────
+            # Restart services one at a time so nginx always has a live backend
+            echo "🔄 Rolling restart..."
+            docker compose up -d --no-deps --no-recreate postgres redis
+            docker compose up -d --no-deps worker
+            docker compose up -d --no-deps api
+            # Wait for api to be healthy before restarting frontend
+            echo "⏳ Waiting for api to be healthy..."
+            for i in $(seq 1 15); do
+              STATUS=$(docker compose exec -T api curl -sf http://localhost:8000/health \
+                -o /dev/null -w "%{http_code}" 2>/dev/null || echo "000")
+              if [ "$STATUS" = "200" ]; then
+                echo "✓ API healthy"
+                break
+              fi
+              echo "  attempt $i — got $STATUS, waiting 5s..."
+              sleep 5
+            done
+            docker compose up -d --no-deps frontend
+            docker compose up -d --no-deps nginx
 
+            # ── 6. Cleanup ─────────────────────────────────────────────────
             echo "🧹 Cleaning up old images..."
             docker image prune -f
 
             echo "✅ Deployment complete — $(date)"
 
-      # ── 2. Health check ────────────────────────────────────────────────────
+      # ── 2. Health check (external) ─────────────────────────────────────────
       - name: Health check
         run: |
           echo "Waiting for /health to respond..."
@@ -74,7 +108,19 @@ jobs:
             echo "⏪ Rolling back to previous commit..."
             git checkout HEAD~1
 
-            docker compose build api worker frontend
+            # Rebuild from previous code
+            docker compose build --pull api worker frontend
+
+            # Restore DB from latest backup if migration caused data issues
+            LATEST_BACKUP=$(ls -t /opt/backups/vraiticket_*.sql.gz 2>/dev/null | head -1)
+            if [ -n "$LATEST_BACKUP" ]; then
+              echo "🔁 Restoring DB from $LATEST_BACKUP..."
+              gunzip -c "$LATEST_BACKUP" | docker compose exec -T postgres psql \
+                -U ${POSTGRES_USER:-vraiticket_user} \
+                ${POSTGRES_DB:-vraiticket_db}
+              echo "✓ DB restored"
+            fi
+
             docker compose up -d
 
             echo "⚠️  Rollback complete — $(date)"
