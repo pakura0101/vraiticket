@@ -1,214 +1,278 @@
-# VraiTicket — IT Support Ticket Management System
+<div align="center">
 
-A modern, full-stack IT helpdesk platform built with **FastAPI** and **Next.js 14**. Three roles (client, agent, admin), real-time notifications, file attachments, agent performance analytics, light/dark theme, and a full Docker deployment.
+# 🎫 VraiTicket
+
+**A production-ready IT helpdesk & ticket management system**
+
+[![CI](https://github.com/pakura0101/vraiticket/actions/workflows/CI.yml/badge.svg)](https://github.com/pakura0101/vraiticket/actions)
+[![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi)](https://fastapi.tiangolo.com)
+[![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js)](https://nextjs.org)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue?logo=postgresql)](https://postgresql.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+[Features](#-features) · [Architecture](#-architecture) · [Quick Start](#-quick-start) · [Configuration](#-configuration) · [API Docs](#-api-docs) · [Development](#-development)
+
+</div>
 
 ---
 
-## Tech Stack
+## ✨ Features
 
-| Layer | Technology |
-|---|---|
-| Frontend | Next.js 14 (App Router) · TypeScript · Tailwind CSS · Zustand · React Hook Form |
-| Backend | FastAPI · Python 3.12 · SQLAlchemy 2 · Alembic · Pydantic v2 |
-| Auth | JWT (python-jose) · bcrypt via passlib |
-| Database | PostgreSQL 16 |
-| Cache / Queue | Redis 7 · Celery 5 |
-| Reverse Proxy | Nginx 1.27 |
-| Container | Docker · Docker Compose |
+- **Role-based access control** — three distinct roles: `client`, `agent`, and `admin`, each with precisely scoped permissions
+- **Full ticket lifecycle** — create, assign, escalate, resolve, cancel, and rate tickets
+- **SLA enforcement** — Celery beat task auto-escalates overdue tickets every 15 minutes and notifies admins
+- **Audit log** — every status change, assignment, and escalation is recorded with actor, timestamp, and old/new values
+- **Threaded comments** — clients, agents, and admins can discuss tickets in-thread
+- **File attachments** — server-side MIME validation (not header-spoofable), 5 MB cap, per-ticket storage
+- **Agent groups** — tickets can be routed to groups; agents see only their group's queue
+- **Statistics dashboard** — per-agent performance, company-level metrics, and SLA compliance reporting
+- **Dark / light theme** — persisted user preference across sessions
+- **Docker Compose** — single command to run the full stack (Postgres, Redis, Celery, API, frontend, Nginx)
 
 ---
 
-## Repository Structure
+## 🏗 Architecture
 
 ```
-vraiticket/                     ← root (this README)
-├── docker-compose.yml          ← full stack orchestration
-├── .env.example                ← copy to .env and fill in secrets
-├── nginx/
-│   └── nginx.conf              ← reverse proxy configuration
-├── backend/                    ← FastAPI application
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   ├── alembic/                ← database migrations
-│   ├── app/
-│   │   ├── api/v1/             ← route handlers
-│   │   ├── core/               ← config, security, dependencies
-│   │   ├── db/                 ← SQLAlchemy base, session, seed
-│   │   ├── models/             ← ORM models
-│   │   ├── schemas/            ← Pydantic request/response schemas
-│   │   ├── services/           ← business logic layer
-│   │   └── utils/              ← helpers, notifications, pagination
-│   └── worker.py               ← Celery entry point
-└── frontend/                   ← Next.js application
-    ├── Dockerfile
-    ├── next.config.js
-    └── src/
-        ├── app/                ← App Router pages
-        ├── components/         ← UI, layout, ticket components
-        ├── hooks/              ← Zustand stores, auth image hook
-        ├── lib/                ← axios client, services, utils
-        ├── styles/             ← globals.css with CSS variables
-        └── types/              ← TypeScript interfaces
+┌─────────────────────────────────────────────────┐
+│                   Nginx (port 80)               │
+│  /        → Next.js  (frontend:3000)            │
+│  /api/v1  → FastAPI  (api:8000)                 │
+└─────────────────────────────────────────────────┘
+         │                        │
+┌────────┴──────────┐   ┌─────────┴──────────────┐
+│   Next.js 14      │   │   FastAPI (Python 3.12) │
+│   App Router      │   │   SQLAlchemy ORM        │
+│   Tailwind CSS    │   │   Alembic migrations    │
+│   Zustand auth    │   │   JWT authentication    │
+│   Axios + types   │   │   Celery + Redis tasks  │
+└───────────────────┘   └─────────────────────────┘
+                                  │
+                    ┌─────────────┴──────────────┐
+                    │        PostgreSQL 16        │
+                    └────────────────────────────┘
+```
+
+### Backend layout
+
+```
+backend/
+├── app/
+│   ├── api/v1/endpoints/   # Thin route handlers (auth, tickets, users, …)
+│   ├── core/               # Config, security (JWT + bcrypt), dependencies
+│   ├── db/                 # SQLAlchemy engine, session, seeder
+│   ├── models/             # ORM models (User, Ticket, Comment, …)
+│   ├── schemas/            # Pydantic request/response schemas
+│   ├── services/           # All business logic lives here
+│   ├── tasks/              # Celery tasks (SLA escalation)
+│   └── utils/              # Notifications, pagination
+├── alembic/                # Database migrations
+└── tests/                  # Pytest suite (SQLite in-memory)
+```
+
+### Frontend layout
+
+```
+frontend/src/
+├── app/                    # Next.js App Router pages
+│   ├── (dashboard)/        # Protected layout — tickets, admin, dashboard
+│   └── login/              # Public auth page
+├── components/             # Reusable UI components
+├── hooks/                  # useAuthStore (Zustand), useTheme
+├── lib/                    # api.ts (Axios client), services.ts
+└── types/                  # Shared TypeScript interfaces
 ```
 
 ---
 
-## Roles
-
-| Role | Can do |
-|---|---|
-| **Client** | Submit tickets, track progress, upload attachments, rate resolved tickets, cancel own tickets |
-| **Agent** | View group queue, self-assign tickets, update status, add internal notes, escalate to another agent, upload attachments |
-| **Admin** | Everything above + manage users, companies, groups, view analytics, run SLA checks, assign tickets |
-
----
-
-## Quick Start (Docker — recommended)
+## 🚀 Quick Start
 
 ### Prerequisites
-- Docker ≥ 24 and Docker Compose v2 (`docker compose version`)
 
-### 1. Clone and configure
+- [Docker](https://docs.docker.com/get-docker/) ≥ 24
+- [Docker Compose](https://docs.docker.com/compose/) v2
+
+### 1 — Clone
 
 ```bash
-git clone https://github.com/your-org/vraiticket.git
+git clone https://github.com/pakura0101/vraiticket.git
 cd vraiticket
-
-# Create environment file from template
-cp .env.example .env
 ```
 
-Edit `.env` — at minimum change these three:
+### 2 — Configure environment
 
-```dotenv
-POSTGRES_PASSWORD=your_strong_db_password
-SECRET_KEY=your_64_char_random_string     # python -c "import secrets; print(secrets.token_hex(64))"
-FIRST_ADMIN_PASSWORD=YourAdminPassword1!
+```bash
+# Backend
+cp backend/.env.example backend/.env
+# Edit backend/.env — fill in SECRET_KEY, FIRST_ADMIN_EMAIL, FIRST_ADMIN_PASSWORD,
+# ALLOWED_ORIGINS, and any database overrides.
+
+# Frontend
+cp frontend/.env.example frontend/.env.local
+# Edit if your API is not on localhost:8000
 ```
 
-### 2. Build and start
+> **Required variables with no defaults** (the app will refuse to start without them):
+>
+> | Variable | Description |
+> |---|---|
+> | `SECRET_KEY` | JWT signing key — generate with `python -c "import secrets; print(secrets.token_hex(32))"` |
+> | `FIRST_ADMIN_EMAIL` | Email for the bootstrap admin account |
+> | `FIRST_ADMIN_PASSWORD` | Password for the bootstrap admin account — change after first login |
+> | `ALLOWED_ORIGINS` | Comma-separated list of allowed frontend origins (e.g. `https://app.example.com`) |
+
+### 3 — Start
 
 ```bash
 docker compose up --build
 ```
 
-On first run Docker will:
-1. Start PostgreSQL and Redis
-2. Run `alembic upgrade head` (creates all tables)
-3. Seed the first admin account
-4. Start the API, Celery worker, Next.js, and Nginx
+The stack will:
+1. Start Postgres and Redis
+2. Run Alembic migrations
+3. Seed the first admin account (one-time, skipped on subsequent starts)
+4. Start the API, Celery worker, Celery beat scheduler, frontend, and Nginx
 
-### 3. Access
-
-| Service | URL |
-|---|---|
-| **App** | http://localhost |
-| **API docs** | http://localhost/docs |
-| **Health check** | http://localhost/health |
-
-**Default admin:** `admin@vraiticket.io` / `Admin@12345` *(change in `.env` before deploying)*
+Open **http://localhost** and log in with your `FIRST_ADMIN_EMAIL` / `FIRST_ADMIN_PASSWORD`.
 
 ---
 
-## Local Development (without Docker)
+## ⚙️ Configuration
 
-See individual READMEs:
-- [`backend/README.md`](./backend/README.md) — Python venv setup
-- [`frontend/README.md`](./frontend/README.md) — Node.js setup
+All backend settings are loaded from environment variables (or `backend/.env`). See [`backend/.env.example`](backend/.env.example) for the full reference.
 
----
-
-## Architecture: Why Nginx as Reverse Proxy?
-
-```
-Browser
-  │
-  ▼
-Nginx :80          (single entry point)
-  ├── /api/*   → FastAPI :8000
-  ├── /docs    → FastAPI :8000  (Swagger)
-  ├── /health  → FastAPI :8000
-  └── /*       → Next.js :3000
-```
-
-**Benefits over exposing ports directly:**
-
-| | Without Nginx | With Nginx |
+| Variable | Default | Description |
 |---|---|---|
-| CORS | Must configure `allow_origins` on every API response | Not needed — same origin `/api/v1` |
-| Entry point | Two ports (`:3000` + `:8000`) | One port (`:80`) |
-| SSL/TLS | Must configure on both services | Terminate once in Nginx |
-| Rate limiting | Not built-in | Per-route limits (login: 5/min, API: 30/s) |
-| Static assets | Served by Node.js | Nginx adds `Cache-Control: immutable` |
-| Security headers | Must add in each app | Added once in Nginx config |
-
-FastAPI and Next.js containers are **not exposed** to the host — they're only reachable through Nginx on the internal Docker network.
+| `APP_ENV` | `production` | Set to `development` locally to enable debug mode |
+| `DEBUG` | `false` | Enables Swagger UI, verbose logging, and open CORS |
+| `DATABASE_URL` | — | PostgreSQL connection string |
+| `SECRET_KEY` | **required** | JWT signing secret |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | `60` | JWT lifetime in minutes |
+| `ALLOWED_ORIGINS` | **required** | Comma-separated CORS origins (ignored in DEBUG mode) |
+| `DEFAULT_SLA_HOURS` | `24` | Hours before a ticket is auto-escalated |
+| `FIRST_ADMIN_EMAIL` | **required** | Bootstrap admin email (used once at first boot) |
+| `FIRST_ADMIN_PASSWORD` | **required** | Bootstrap admin password (used once at first boot) |
+| `REDIS_URL` | `redis://localhost:6379/0` | Redis connection string |
 
 ---
 
-## Production Checklist
+## 📖 API Docs
+
+Swagger UI is available at **`/docs`** when `DEBUG=true`. It is automatically hidden in production.
+
+### Authentication
+
+All protected endpoints require a `Bearer` token obtained from `POST /api/v1/auth/login`.
 
 ```bash
-# Generate a strong secret key
-python -c "import secrets; print(secrets.token_hex(64))"
-
-# Required changes in .env before going live:
-SECRET_KEY=<64-char random hex>
-POSTGRES_PASSWORD=<strong password>
-FIRST_ADMIN_PASSWORD=<strong password>
-
-# In backend/app/main.py — tighten CORS (or remove — Nginx handles it):
-allow_origins=["https://yourdomain.com"]
-
-# For HTTPS: add certs to nginx/certs/ and uncomment the 443 block in nginx/nginx.conf
+curl -X POST http://localhost:8000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "admin@example.com", "password": "yourpassword"}'
 ```
+
+> The login endpoint is rate-limited to **10 requests per minute per IP** to prevent brute-force attacks.
+
+### Role permissions summary
+
+| Action | Client | Agent | Admin |
+|---|:---:|:---:|:---:|
+| Create standard ticket | ✅ | ✅ | ✅ |
+| Create internal ticket | ❌ | ✅ | ✅ |
+| View own tickets | ✅ | — | ✅ |
+| View group tickets | — | ✅ | ✅ |
+| Self-assign ticket | — | ✅ | ✅ |
+| Escalate to agent | — | ✅ | ✅ |
+| Update ticket status | — | ✅ | ✅ |
+| Cancel own ticket | ✅ | ❌ | ✅ |
+| Rate resolved ticket | ✅ | — | — |
+| Manage users/companies | — | — | ✅ |
+| View statistics | — | — | ✅ |
+| Filter by `assigned_to` | — | — | ✅ |
 
 ---
 
-## Docker Services
+## 🛠 Development
 
-| Service | Image | Role |
-|---|---|---|
-| `postgres` | postgres:16-alpine | Primary database |
-| `redis` | redis:7-alpine | Celery broker + result store |
-| `migrate` | (api image) | Runs `alembic upgrade head` once, then exits |
-| `api` | Built from `backend/` | FastAPI application |
-| `worker` | Built from `backend/` | Celery worker + beat scheduler (SLA escalation) |
-| `frontend` | Built from `frontend/` | Next.js application |
-| `nginx` | nginx:1.27-alpine | Reverse proxy, rate limiting, SSL termination |
-
-### Useful commands
+### Backend (without Docker)
 
 ```bash
-# Start in background
-docker compose up -d --build
+cd backend
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt -r requirements-test.txt
+# python-magic also requires the system library:
+# Ubuntu/Debian:  sudo apt install libmagic1
+# macOS:          brew install libmagic
 
-# View logs
-docker compose logs -f api
-docker compose logs -f worker
-docker compose logs -f nginx
+cp .env.example .env  # fill in values, set DEBUG=true
 
-# Run a one-off migration
-docker compose run --rm migrate alembic upgrade head
+# Run migrations
+alembic upgrade head
 
-# Restart a single service
-docker compose restart api
+# Start API
+uvicorn app.main:app --reload
 
-# Stop everything
-docker compose down
+# Start Celery worker (separate terminal)
+celery -A app.tasks.celery_app worker --loglevel=info
 
-# Stop and wipe all data (⚠ destructive)
-docker compose down -v
+# Start Celery beat scheduler (separate terminal)
+celery -A app.tasks.celery_app beat --loglevel=info
+```
+
+### Frontend (without Docker)
+
+```bash
+cd frontend
+npm install
+cp .env.example .env.local  # set NEXT_PUBLIC_API_URL
+npm run dev
+```
+
+### Running tests
+
+```bash
+cd backend
+pytest -q --cov=app --cov-report=term-missing
+```
+
+Tests use an SQLite in-memory database — no external services required.
+
+### Linting
+
+```bash
+# Backend
+pip install ruff && ruff check .
+
+# Frontend
+npm run lint
+npm run type-check
 ```
 
 ---
 
-## File Uploads
+## 🔐 Security Notes
 
-Uploaded files (ticket attachments and agent avatars) are stored in a Docker named volume `uploads` that is shared between the `api` and `worker` containers. The volume persists across container restarts. Files are served by the API with authentication — the frontend fetches them via axios with the Bearer token.
+- **Passwords** are hashed with bcrypt (cost factor 12).
+- **JWT tokens** are signed with HS256 and expire after `ACCESS_TOKEN_EXPIRE_MINUTES` minutes.
+- **MIME type detection** uses `python-magic` to inspect actual file bytes, not the client-supplied `Content-Type` header.
+- **CORS** is locked to `ALLOWED_ORIGINS` in production; open only in `DEBUG` mode.
+- **Swagger UI** (`/docs`, `/redoc`) is disabled in production (`DEBUG=false`).
+- **Rate limiting** on `POST /auth/login`: 10 requests/minute per IP (via slowapi).
+- **No default credentials** — `FIRST_ADMIN_EMAIL` and `FIRST_ADMIN_PASSWORD` are required at boot with no fallback values.
 
 ---
 
-## License
+## 🤝 Contributing
 
-MIT
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feat/my-feature`
+3. Commit your changes: `git commit -m "feat: add my feature"`
+4. Push and open a pull request against `main`
+
+The CI pipeline will automatically run linting, type checks, tests, and Docker builds on every PR.
+
+---
+
+## 📄 License
+
+[MIT](LICENSE) — © VraiTicket contributors

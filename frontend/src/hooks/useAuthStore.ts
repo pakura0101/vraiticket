@@ -5,7 +5,7 @@ import type { User } from "@/types";
 interface AuthState {
   token: string | null;
   user: User | null;
-  hydrated: boolean;           // ← key flag: has zustand rehydrated from storage yet?
+  hydrated: boolean;
   isAuthenticated: boolean;
   setAuth: (token: string, user: User) => void;
   clearAuth: () => void;
@@ -21,16 +21,12 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
 
       setAuth: (token, user) => {
-        if (typeof window !== "undefined") {
-          localStorage.setItem("vt_token", token);
-        }
+        // Single write — the axios interceptor reads from Zustand's persisted
+        // storage key "vt_auth", so we no longer need a separate vt_token key.
         set({ token, user, isAuthenticated: true });
       },
 
       clearAuth: () => {
-        if (typeof window !== "undefined") {
-          localStorage.removeItem("vt_token");
-        }
         set({ token: null, user: null, isAuthenticated: false });
       },
 
@@ -39,18 +35,13 @@ export const useAuthStore = create<AuthState>()(
     {
       name: "vt_auth",
       storage: createJSONStorage(() => localStorage),
-      // Only persist token + user — not hydrated/isAuthenticated (those are derived)
+      // Only persist token + user — hydrated/isAuthenticated are derived at runtime.
       partialize: (state) => ({ token: state.token, user: state.user }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;
-        // Restore isAuthenticated from persisted token
         if (state.token) {
           state.isAuthenticated = true;
-          if (typeof window !== "undefined") {
-            localStorage.setItem("vt_token", state.token);
-          }
         }
-        // Signal that hydration is complete
         state.hydrated = true;
       },
     }

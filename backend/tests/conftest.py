@@ -10,6 +10,9 @@ from contextlib import asynccontextmanager
 # 1. Env vars BEFORE any app import
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 os.environ["SECRET_KEY"] = "test-secret-key-not-for-production"
+os.environ.setdefault("FIRST_ADMIN_EMAIL", "testadmin@vraiticket.io")
+os.environ.setdefault("FIRST_ADMIN_PASSWORD", "TestAdmin@12345")
+os.environ.setdefault("ALLOWED_ORIGINS", "http://localhost:3000")
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")
 os.environ.setdefault("CELERY_BROKER_URL", "redis://localhost:6379/0")
 os.environ.setdefault("CELERY_RESULT_BACKEND", "redis://localhost:6379/1")

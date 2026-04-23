@@ -20,6 +20,10 @@ python-jose[cryptography]==3.4.0
 
 # ── File uploads ───────────────────────────────────────────────
 python-multipart==0.0.26
+python-magic==0.4.27   # server-side MIME detection from file bytes (fix #3)
+
+# ── Rate limiting ──────────────────────────────────────────────
+slowapi==0.1.9          # brute-force protection on auth endpoints (fix #10)
 
 # ── Background tasks ──────────────────────────────────────────
 celery==5.4.0

@@ -38,8 +38,8 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const token = await authAPI.login(data);
-      localStorage.setItem("vt_token", token.access_token);
       const user = await authAPI.me();
+      // setAuth is the single source of truth — it persists to localStorage via Zustand
       setAuth(token.access_token, user);
       toast.success(`Welcome, ${user.full_name.split(" ")[0]}!`);
       router.replace("/dashboard");
