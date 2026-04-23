@@ -2,7 +2,9 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+import magic
 from fastapi import UploadFile
+from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.config     import settings
@@ -103,7 +105,6 @@ class TicketService:
         if requesting_user.role == UserRole.client:
             q = q.filter(Ticket.created_by == requesting_user.id)
         elif requesting_user.role == UserRole.agent:
-            from sqlalchemy import or_
             agent_group_ids = [g.id for g in requesting_user.groups]
             q = q.filter(
                 or_(
@@ -120,7 +121,9 @@ class TicketService:
             q = q.filter(Ticket.group_id == group_id)
         if ticket_type:
             q = q.filter(Ticket.ticket_type == ticket_type)
-        if assigned_to is not None and requesting_user.role == UserRole.admin:
+        if assigned_to is not None:
+            if requesting_user.role != UserRole.admin:
+                raise ForbiddenError("Only admins can filter by assigned_to")
             q = q.filter(Ticket.assigned_to == assigned_to)
 
         q = q.order_by(Ticket.created_at.desc())
@@ -267,12 +270,15 @@ class TicketService:
         ticket = self._get_ticket_or_404(ticket_id)
         self._assert_can_view(ticket, uploader)
 
-        if file.content_type not in ALLOWED_MIME:
-            raise BadRequestError(f"File type '{file.content_type}' is not allowed")
-
         content = await file.read()
         if len(content) > MAX_FILE_BYTES:
             raise BadRequestError("File exceeds 5 MB limit")
+
+        # Detect MIME type from actual file bytes — not the client-supplied header,
+        # which is trivially spoofable. This prevents disguised executable uploads.
+        detected_mime = magic.from_buffer(content, mime=True)
+        if detected_mime not in ALLOWED_MIME:
+            raise BadRequestError(f"File type '{detected_mime}' is not allowed")
 
         ext = Path(file.filename or "file").suffix
         stored_name = f"{uuid.uuid4().hex}{ext}"
@@ -285,7 +291,7 @@ class TicketService:
             uploader_id=uploader.id,
             filename=file.filename or stored_name,
             stored_path=str(stored_path),
-            mime_type=file.content_type,
+            mime_type=detected_mime,
             size_bytes=len(content),
         )
         self.db.add(attachment)
@@ -318,6 +324,10 @@ class TicketService:
     # ── SLA escalation ──────────────────────────────────────────────────────────
 
     def escalate_overdue_tickets(self) -> int:
+        return len(self.escalate_overdue_tickets_with_details())
+
+    def escalate_overdue_tickets_with_details(self) -> list:
+        """Escalate all SLA-breached tickets and return the affected ticket objects."""
         now = datetime.now(timezone.utc)
         overdue = (
             self.db.query(Ticket)
@@ -330,16 +340,15 @@ class TicketService:
             )
             .all()
         )
-        count = 0
         for ticket in overdue:
+            old_status = ticket.status.value
             ticket.status = TicketStatus.ESCALATED
             self._log(ticket.id, None, LogAction.ESCALATED,
                       f"Auto-escalated: SLA breached (due_at={ticket.due_at})",
-                      old_value="OPEN", new_value="ESCALATED")
-            count += 1
-        if count:
+                      old_value=old_status, new_value="ESCALATED")
+        if overdue:
             self.db.commit()
-        return count
+        return overdue
 
     # ── Helpers ─────────────────────────────────────────────────────────────────
 
