@@ -45,10 +45,14 @@ describe("useAuthStore — setAuth", () => {
     act(() => result.current.setAuth("tok", mockUser));
     expect(result.current.user?.full_name).toBe("Alice Admin");
   });
-  it("persists token to localStorage", () => {
+  it("persists token to localStorage via vt_auth key", () => {
     const { result } = renderHook(() => useAuthStore());
     act(() => result.current.setAuth("stored-tok", mockUser));
-    expect(localStorage.getItem("vt_token")).toBe("stored-tok");
+    // Token is persisted inside the Zustand "vt_auth" key (single source of truth).
+    // The legacy standalone "vt_token" key is intentionally no longer written.
+    const stored = localStorage.getItem("vt_auth");
+    const parsed = stored ? JSON.parse(stored) : null;
+    expect(parsed?.state?.token).toBe("stored-tok");
   });
   it("works for client role", () => {
     const { result } = renderHook(() => useAuthStore());
@@ -76,11 +80,14 @@ describe("useAuthStore — clearAuth", () => {
     expect(result.current.token).toBeNull();
     expect(result.current.user).toBeNull();
   });
-  it("removes vt_token from localStorage", () => {
+  it("removes token from vt_auth localStorage key on clearAuth", () => {
     const { result } = renderHook(() => useAuthStore());
     act(() => result.current.setAuth("tok", mockUser));
     act(() => result.current.clearAuth());
-    expect(localStorage.getItem("vt_token")).toBeNull();
+    // After clearAuth the persisted state should have no token.
+    const stored = localStorage.getItem("vt_auth");
+    const parsed = stored ? JSON.parse(stored) : null;
+    expect(parsed?.state?.token ?? null).toBeNull();
   });
 });
 

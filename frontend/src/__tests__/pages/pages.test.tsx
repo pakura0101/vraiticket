@@ -92,14 +92,19 @@ describe("LoginPage — submission", () => {
     fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/dashboard"));
   });
-  it("stores token in localStorage on success", async () => {
+  it("persists token to vt_auth in localStorage on success", async () => {
     mock.onPost("/auth/login").reply(200, { access_token: "stored-tok", token_type: "bearer" });
     mock.onGet("/auth/me").reply(200, admin);
     render(<LoginPage />);
     fireEvent.change(screen.getByPlaceholderText("you@company.com"), { target: { value: "a@b.com" } });
     fireEvent.change(screen.getByPlaceholderText("••••••••"),          { target: { value: "pw"     } });
     fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
-    await waitFor(() => expect(localStorage.getItem("vt_token")).toBe("stored-tok"));
+    // Token is stored inside Zustand's persisted "vt_auth" key, not a standalone "vt_token".
+    await waitFor(() => {
+      const stored = localStorage.getItem("vt_auth");
+      const parsed = stored ? JSON.parse(stored) : null;
+      expect(parsed?.state?.token).toBe("stored-tok");
+    });
   });
   it("shows error toast on 401", async () => {
     mock.onPost("/auth/login").reply(401, { detail: "Invalid credentials" });
