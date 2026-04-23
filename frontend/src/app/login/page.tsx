@@ -38,6 +38,8 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const token = await authAPI.login(data);
+      // Save token FIRST so the axios interceptor can attach it to the /me request
+      localStorage.setItem("vt_auth", JSON.stringify({ state: { token: token.access_token, user: null } }));
       const user = await authAPI.me();
       // setAuth is the single source of truth — it persists to localStorage via Zustand
       setAuth(token.access_token, user);
