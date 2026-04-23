@@ -87,8 +87,8 @@ services:
       APP_ENV:               production
       DEBUG:                 "false"
       DEFAULT_SLA_HOURS:     ${DEFAULT_SLA_HOURS:-24}
-      FIRST_ADMIN_EMAIL:     ${FIRST_ADMIN_EMAIL:-admin@vraiticket.io}
-      FIRST_ADMIN_PASSWORD:  ${FIRST_ADMIN_PASSWORD:-Admin@12345}
+      FIRST_ADMIN_EMAIL:     ${FIRST_ADMIN_EMAIL:?FIRST_ADMIN_EMAIL is required}
+      FIRST_ADMIN_PASSWORD:  ${FIRST_ADMIN_PASSWORD:?FIRST_ADMIN_PASSWORD is required}
     volumes:
       - uploads:/app/uploads
     # Not exposed directly — Nginx proxies to it
