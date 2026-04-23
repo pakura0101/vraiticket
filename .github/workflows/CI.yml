@@ -93,8 +93,8 @@ jobs:
           file: ./frontend/Dockerfile
           push: false
           tags: vraiticket/frontend:ci-${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=inline
+          cache-to: type=inline
       - name: Build full stack with docker-compose
         run: docker compose config
         env:
