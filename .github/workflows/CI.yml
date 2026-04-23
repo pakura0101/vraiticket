@@ -102,3 +102,5 @@ jobs:
           POSTGRES_USER: ci_user
           POSTGRES_DB: vraiticket_test
           SECRET_KEY: ci_test_secret_key_fixed_length_32_chars_long
+          FIRST_ADMIN_EMAIL: ${{ secrets.FIRST_ADMIN_EMAIL }}
+          FIRST_ADMIN_PASSWORD: ${{ secrets.FIRST_ADMIN_PASSWORD }}
